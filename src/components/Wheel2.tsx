@@ -9,7 +9,7 @@ interface WheelProps {
 
 export function Wheel({ isSpinning, onSpinComplete, rotation }: WheelProps) {
 	const wheelSize = 400;
-	const center = wheelSize / 2;
+	// const center = wheelSize / 2;
 	const segmentAngle = 360 / SEGMENTS.length;
 
 	return (
@@ -35,9 +35,12 @@ export function Wheel({ isSpinning, onSpinComplete, rotation }: WheelProps) {
 					ease: [0.25, 0.1, 0.25, 1],
 				}}
 				onAnimationComplete={() => {
-					const finalRotation = rotation % 360;
-					const segmentIndex = Math.floor((360 - (finalRotation % 360)) / segmentAngle);
-					onSpinComplete(SEGMENTS[segmentIndex % SEGMENTS.length].value);
+					console.log("onAnimationComplete - isSpinning prop:", isSpinning);
+					if (isSpinning) {
+						const finalRotation = rotation % 360;
+						const segmentIndex = Math.floor((360 - finalRotation) / segmentAngle);
+						onSpinComplete(SEGMENTS[segmentIndex % SEGMENTS.length].value);
+					}
 				}}
 			>
 				{SEGMENTS.map((segment, index) => {
