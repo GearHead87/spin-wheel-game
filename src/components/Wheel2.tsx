@@ -29,16 +29,19 @@ export function Wheel({ isSpinning, onSpinComplete, rotation }: WheelProps) {
 			{/* Wheel */}
 			<motion.div
 				className="relative h-full w-full rounded-full bg-gray-800 shadow-xl"
-				animate={{ rotate: rotation }}
+				animate={{ 
+					rotate: rotation 
+				}}
 				transition={{
 					duration: SPIN_DURATION,
-					ease: [0.25, 0.1, 0.25, 1],
+					ease: "easeOut",
+					type: "tween"
 				}}
 				onAnimationComplete={() => {
-					console.log("onAnimationComplete - isSpinning prop:", isSpinning);
 					if (isSpinning) {
 						const finalRotation = rotation % 360;
-						const segmentIndex = Math.floor((360 - finalRotation) / segmentAngle);
+						const normalizedRotation = finalRotation < 0 ? finalRotation + 360 : finalRotation;
+						const segmentIndex = Math.floor((360 - normalizedRotation) / segmentAngle);
 						onSpinComplete(SEGMENTS[segmentIndex % SEGMENTS.length].value);
 					}
 				}}

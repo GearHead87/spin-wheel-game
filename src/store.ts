@@ -29,13 +29,11 @@ export const useGameStore = create<GameState & GameActions>((set) => ({
     ...initialState,
     
     spinWheel: () => {
-        console.log("spinWheel function called!");
         set((state) => {
-            console.log("spinWheel action - isSpinning:", state.isSpinning, "gameComplete:", state.gameComplete);
             if (state.isSpinning || state.gameComplete) return state;
             
-            const baseRotation = state.rotation % 360;
-            const newRotation = baseRotation + 1440 + Math.random() * 720;
+            // Increase minimum rotation to ensure at least 4 full spins
+            const newRotation = 1440 + Math.random() * 1440;
             
             return {
                 ...state,
@@ -47,7 +45,6 @@ export const useGameStore = create<GameState & GameActions>((set) => ({
 
     handleSpinComplete: (value: number) => {
         set((state) => {
-            console.log("handleSpinComplete action - value:", value, "isSpinning:", state.isSpinning, "gameComplete:", state.gameComplete, "scoresLength:", state.scores.length);
             const newScores = [...state.scores, value];
             const isComplete = newScores.length >= TOTAL_SPINS;
 
@@ -58,6 +55,8 @@ export const useGameStore = create<GameState & GameActions>((set) => ({
                 currentSpin: state.currentSpin + 1,
                 isSpinning: false,
                 gameComplete: isComplete,
+                // Reset rotation to 0 after spin completes
+                rotation: 0
             };
         });
     },
