@@ -8,6 +8,7 @@ interface GameState {
     totalScore: number;
     gameComplete: boolean;
     rotation: number;
+    totalRotation: number;
 }
 
 interface GameActions {
@@ -23,6 +24,7 @@ const initialState: GameState = {
     totalScore: 0,
     gameComplete: false,
     rotation: 0,
+    totalRotation: 0,
 };
 
 export const useGameStore = create<GameState & GameActions>((set) => ({
@@ -32,13 +34,13 @@ export const useGameStore = create<GameState & GameActions>((set) => ({
         set((state) => {
             if (state.isSpinning || state.gameComplete) return state;
             
-            // Increase minimum rotation to ensure at least 4 full spins
-            const newRotation = 1440 + Math.random() * 1440;
+            const newSpinRotation = 1440 + Math.random() * 1440;
             
             return {
                 ...state,
                 isSpinning: true,
-                rotation: newRotation
+                rotation: state.totalRotation + newSpinRotation,
+                totalRotation: state.totalRotation + newSpinRotation
             };
         });
     },
@@ -55,8 +57,6 @@ export const useGameStore = create<GameState & GameActions>((set) => ({
                 currentSpin: state.currentSpin + 1,
                 isSpinning: false,
                 gameComplete: isComplete,
-                // Reset rotation to 0 after spin completes
-                rotation: 0
             };
         });
     },

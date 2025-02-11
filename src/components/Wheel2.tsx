@@ -1,5 +1,7 @@
+import { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { SEGMENTS, SPIN_DURATION } from '../wheel-config';
+import tickingSound from "../assets/audio/spin-wheel-sound.mp3";
 
 interface WheelProps {
 	isSpinning: boolean;
@@ -7,20 +9,101 @@ interface WheelProps {
 	rotation: number;
 }
 
+const ticTicSound: HTMLAudioElement | null = typeof window !== 'undefined' ? new Audio(tickingSound) : null;
+
 export function Wheel({ isSpinning, onSpinComplete, rotation }: WheelProps) {
-	const wheelSize = 400;
-	// const center = wheelSize / 2;
+	const wheelSize = typeof window !== 'undefined' && window.innerWidth < 640 ? 150 : 200;
+	const canvasRef = useRef<HTMLCanvasElement>(null);
+	// const [currentSegment, setCurrentSegment] = useState<number | null>(null);
 	const segmentAngle = 360 / SEGMENTS.length;
 
+	useEffect(() => {
+		if (isSpinning && ticTicSound) {
+			ticTicSound.currentTime = 0;
+			ticTicSound.play();
+		} else if (ticTicSound) {
+			ticTicSound.pause();
+			ticTicSound.currentTime = 0;
+		}
+	}, [isSpinning]);
+
+	useEffect(() => {
+		const canvas = canvasRef.current;
+		if (!canvas) return;
+
+		const ctx = canvas.getContext('2d');
+		if (!ctx) return;
+
+		// Clear canvas
+		ctx.clearRect(0, 0, wheelSize * 2, wheelSize * 2);
+
+		// Draw wheel segments
+		SEGMENTS.forEach((segment, index) => {
+			// Adjust starting angle by -90 degrees to align with pointer
+			const startAngle = ((index * segmentAngle - 90) * Math.PI) / 180;
+			const endAngle = (((index + 1) * segmentAngle - 90) * Math.PI) / 180;
+
+			ctx.beginPath();
+			ctx.moveTo(wheelSize, wheelSize);
+			ctx.arc(wheelSize, wheelSize, wheelSize - 10, startAngle, endAngle);
+			ctx.closePath();
+
+			// Fill segment
+			ctx.fillStyle = segment.color;
+			ctx.fill();
+
+			// Adjust text rotation and position
+			ctx.save();
+			ctx.translate(wheelSize, wheelSize);
+			ctx.rotate(startAngle + (segmentAngle * Math.PI / 360));
+			ctx.textAlign = 'right';
+			ctx.fillStyle = 'white';
+			ctx.font = 'bold 16px Arial';
+			ctx.fillText(segment.value.toString(), wheelSize - 25, 5);
+			ctx.restore();
+		});
+
+		// Draw center circle
+		ctx.beginPath();
+		ctx.arc(wheelSize, wheelSize, 20, 0, Math.PI * 2);
+		ctx.fillStyle = '#1a202c';
+		ctx.fill();
+		ctx.strokeStyle = '#2d3748';
+		ctx.lineWidth = 8;
+		ctx.stroke();
+
+	}, [wheelSize, segmentAngle]);
+
+	useEffect(() => {
+		// Add resize handler for responsive wheel size
+		const handleResize = () => {
+			const canvas = canvasRef.current;
+			if (!canvas) return;
+			
+			const newSize = window.innerWidth < 640 ? 150 : 200;
+			canvas.width = newSize * 2;
+			canvas.height = newSize * 2;
+			
+			// Redraw wheel
+			const ctx = canvas.getContext('2d');
+			if (!ctx) return;
+			
+			// ... existing drawing code ...
+		};
+
+		window.addEventListener('resize', handleResize);
+		return () => window.removeEventListener('resize', handleResize);
+	}, []);
+
 	return (
-		<div className="relative" style={{ width: wheelSize, height: wheelSize }}>
+		<div className="relative" style={{ width: wheelSize * 2, height: wheelSize * 2 }}>
 			{/* Pointer */}
-			<div className="absolute left-1/2 top-0 z-10 h-8 w-4 -translate-x-1/2 transform">
+			<div className="absolute left-1/2 top-0 z-10 h-6 w-3 -translate-x-1/2 transform">
 				<div className="h-full w-full overflow-hidden">
 					<div
-						className="h-8 w-8 origin-bottom-left rotate-45 transform bg-red-500"
+						className="h-6 w-6 origin-bottom-left rotate-45 transform bg-red-500"
 						style={{
-							boxShadow: '0 0 0 4px #1a202c',
+							boxShadow: '0 0 0 2px #1a202c',
 						}}
 					/>
 				</div>
@@ -28,7 +111,7 @@ export function Wheel({ isSpinning, onSpinComplete, rotation }: WheelProps) {
 
 			{/* Wheel */}
 			<motion.div
-				className="relative h-full w-full rounded-full bg-gray-800 shadow-xl"
+				className="relative h-full w-full"
 				animate={{ 
 					rotate: rotation 
 				}}
@@ -39,65 +122,31 @@ export function Wheel({ isSpinning, onSpinComplete, rotation }: WheelProps) {
 				}}
 				onAnimationComplete={() => {
 					if (isSpinning) {
+						// Fix the angle calculation to match visual position
 						const finalRotation = rotation % 360;
 						const normalizedRotation = finalRotation < 0 ? finalRotation + 360 : finalRotation;
-						const segmentIndex = Math.floor((360 - normalizedRotation) / segmentAngle);
+						const adjustedRotation = (360 - normalizedRotation + 10) % 360;
+						const segmentIndex = Math.floor(adjustedRotation / segmentAngle);
 						onSpinComplete(SEGMENTS[segmentIndex % SEGMENTS.length].value);
 					}
 				}}
 			>
-				{SEGMENTS.map((segment, index) => {
-					const angle = index * segmentAngle;
-					return (
-						<div
-							key={index}
-							className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 origin-center"
-							style={{
-								width: `${wheelSize}px`,
-								height: `${wheelSize}px`,
-								transform: `rotate(${angle}deg)`,
-							}}
-						>
-							<div
-								className="absolute top-0 left-1/2 h-1/2 w-1 -translate-x-1/2 origin-bottom"
-								style={{
-									backgroundColor: segment.color,
-									clipPath: `polygon(
-                    -50px 0,
-                    50px 0,
-                    0 ${wheelSize / 2}px
-                  )`,
-								}}
-							>
-								<span
-									className="absolute left-[10px] top-[30%] transform text-lg z-10 font-bold text-white"
-									style={{
-										textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
-										transform: `rotate(${0 + segmentAngle / 2}deg)`,
-									}}
-								>
-									{segment.value}
-								</span>
-							</div>
-						</div>
-					);
-				})}
-
-				{/* Center circle */}
-				<div
-					className="absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 transform rounded-full bg-gray-900"
-					style={{ boxShadow: '0 0 0 8px #1a202c' }}
+				<canvas
+					ref={canvasRef}
+					width={wheelSize * 2}
+					height={wheelSize * 2}
+					className="rounded-full"
 				/>
 
 				{/* LED lights effect */}
-				<div className="absolute inset-0 rounded-full">
+				{/* <div className="absolute inset-0 rounded-full">
 					{Array.from({ length: 40 }).map((_, i) => (
 						<div
 							key={i}
-							className="absolute left-1/2 h-2 w-2 -translate-x-1/2 transform"
+							className="absolute left-1/2 h-1.5 w-1.5 -translate-x-1/2 transform"
 							style={{
 								rotate: `${i * 9}deg`,
-								transformOrigin: '50% 195px',
+								transformOrigin: '50% 98px',
 							}}
 						>
 							<div
@@ -106,12 +155,12 @@ export function Wheel({ isSpinning, onSpinComplete, rotation }: WheelProps) {
 								}`}
 								style={{
 									backgroundColor: 'rgba(255, 255, 255, 0.8)',
-									boxShadow: '0 0 5px rgba(255, 255, 255, 0.8)',
+									boxShadow: '0 0 3px rgba(255, 255, 255, 0.8)',
 								}}
 							/>
 						</div>
 					))}
-				</div>
+				</div> */}
 			</motion.div>
 		</div>
 	);
