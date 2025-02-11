@@ -39,8 +39,9 @@ export function Wheel({ isSpinning, onSpinComplete, rotation }: WheelProps) {
 
 		// Draw wheel segments
 		SEGMENTS.forEach((segment, index) => {
-			const startAngle = (index * segmentAngle * Math.PI) / 180;
-			const endAngle = ((index + 1) * segmentAngle * Math.PI) / 180;
+			// Adjust starting angle by -90 degrees to align with pointer
+			const startAngle = ((index * segmentAngle - 90) * Math.PI) / 180;
+			const endAngle = (((index + 1) * segmentAngle - 90) * Math.PI) / 180;
 
 			ctx.beginPath();
 			ctx.moveTo(wheelSize, wheelSize);
@@ -51,10 +52,10 @@ export function Wheel({ isSpinning, onSpinComplete, rotation }: WheelProps) {
 			ctx.fillStyle = segment.color;
 			ctx.fill();
 
-			// Add segment value
+			// Adjust text rotation and position
 			ctx.save();
 			ctx.translate(wheelSize, wheelSize);
-			ctx.rotate(startAngle + segmentAngle * Math.PI / 360);
+			ctx.rotate(startAngle + (segmentAngle * Math.PI / 360));
 			ctx.textAlign = 'right';
 			ctx.fillStyle = 'white';
 			ctx.font = 'bold 16px Arial';
@@ -100,9 +101,11 @@ export function Wheel({ isSpinning, onSpinComplete, rotation }: WheelProps) {
 				}}
 				onAnimationComplete={() => {
 					if (isSpinning) {
+						// Fix the angle calculation to match visual position
 						const finalRotation = rotation % 360;
 						const normalizedRotation = finalRotation < 0 ? finalRotation + 360 : finalRotation;
-						const segmentIndex = Math.floor((360 - normalizedRotation) / segmentAngle);
+						const adjustedRotation = (360 - normalizedRotation + 10) % 360;
+						const segmentIndex = Math.floor(adjustedRotation / segmentAngle);
 						onSpinComplete(SEGMENTS[segmentIndex % SEGMENTS.length].value);
 					}
 				}}
