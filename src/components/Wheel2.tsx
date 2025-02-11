@@ -12,7 +12,7 @@ interface WheelProps {
 const ticTicSound: HTMLAudioElement | null = typeof window !== 'undefined' ? new Audio(tickingSound) : null;
 
 export function Wheel({ isSpinning, onSpinComplete, rotation }: WheelProps) {
-	const wheelSize = 200;
+	const wheelSize = typeof window !== 'undefined' && window.innerWidth < 640 ? 150 : 200;
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	// const [currentSegment, setCurrentSegment] = useState<number | null>(null);
 	const segmentAngle = 360 / SEGMENTS.length;
@@ -73,6 +73,27 @@ export function Wheel({ isSpinning, onSpinComplete, rotation }: WheelProps) {
 		ctx.stroke();
 
 	}, [wheelSize, segmentAngle]);
+
+	useEffect(() => {
+		// Add resize handler for responsive wheel size
+		const handleResize = () => {
+			const canvas = canvasRef.current;
+			if (!canvas) return;
+			
+			const newSize = window.innerWidth < 640 ? 150 : 200;
+			canvas.width = newSize * 2;
+			canvas.height = newSize * 2;
+			
+			// Redraw wheel
+			const ctx = canvas.getContext('2d');
+			if (!ctx) return;
+			
+			// ... existing drawing code ...
+		};
+
+		window.addEventListener('resize', handleResize);
+		return () => window.removeEventListener('resize', handleResize);
+	}, []);
 
 	return (
 		<div className="relative" style={{ width: wheelSize * 2, height: wheelSize * 2 }}>
